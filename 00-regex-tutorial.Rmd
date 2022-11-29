@@ -1,0 +1,245 @@
+---
+title: "Regular Expressions in R"
+output: html_document
+date: "`r lubridate::today()`"
+---
+
+## Definition and uses
+
+Regular Expressions or regexes (singular regex): **language for pattern matching**. They are strings containing normal characters and special meta-characters that describe a particular pattern that we want to match in a given text.
+
+Regular Expressions are used:
+
+* in **many programming languages**
+* for **any task that deals with text:** NLP or data-cleaning tasks (e.g., find words that include a given set of letters, how often do past tenses occur in a text, find emails or phone numbers, find and replace left over HTML tags from scraping, etc.).
+
+## Regular expressions with `stringr`
+
+```{r}
+library(stringr)
+suppressPackageStartupMessages(library(tidyverse))
+```
+
+`stringr` is the most popular package for regular expressions in R ([see the cheat sheet](https://evoldyn.gitlab.io/evomics-2018/ref-sheets/R_strings.pdf)). We begin with two helper functions from this package: 
+
+* `str_view()` returns the first regex match
+* `str_view_all()` returns all regex matches
+
+We use them to show the basics syntax of regular expressions. These two functions take a character vector and a regular expressions as inputs, and return the match. NB: these two functions are used only to view the match, if you need to replace or manipulate it, you need other functions from the `stringr` listed at the of this document.
+
+**Match specific characters or full words:**
+```{r}
+x <- c("This is a sentence to practice regular expressions", 
+       "Find the word regex in this sentence",
+       "A last sentence similar to the first sentence")
+```
+
+```{r}
+str_view(x, "re")
+str_view(x, "regex")
+str_view(x, "sentence")
+str_view_all(x, "sentence")
+```
+
+This is fine, but regular expressions are more powerful than replacing manually specified characters or full words: they recognize **meta-characters.** These have a unique meaning to the regex matching engine and vastly enhance the search capability.
+
+## Most common meta-characters: `.` , `^`, `$`, `|`, `[]`
+
+**The `.` matches any single character:**
+```{r}
+str_view(x, "re.")
+str_view(x, "re...")
+```
+
+The `.` dot is a wildcard that matches any single character (except for newline characters); therefore, it is useful when you have a mix of characters (letter, digit, whitespace, weird characters, etc.) or when you do not have detailed information about the text you are trying to match.
+
+**The `^` caret anchors a match to the start of the string:**
+```{r}
+str_view(x, "^re")
+str_view(x, "^F")
+str_view(x, "^F...")
+```
+
+**The `$` dollar sign anchors a match to the end of the string:**
+```{r}
+str_view(x, "s$")
+str_view(x, ".s$")
+str_view_all(x, "e$")
+str_view_all(x, "e")
+```
+
+
+**PRACTICE 1.** Use dots and `$` to match the last four characters of all sentences in `x`: 
+```{r practice1-solution}
+# your code here
+```
+
+
+**The `or` operator is represented using the `|` character:**
+```{r}
+str_view(x, "regular|regex")
+```
+
+The `or` operator can also be represented by grouping a set of characters using `[]`, which is shorthand for `|`. The main difference is that `[]` only works for single characters (not for entire words).
+
+**Use `[]` to match any (one) of the characters in the `[]`** (e.g., [abc] matches a, b, or c):
+
+```{r}
+str_view(x, "[re]")
+str_view_all(x, "[re]")
+```
+
+**Use `[]` with a `^` caret placed after the first `[` to match anything except what is in the `[]`** (e.g., [^abc] matches anything except a, b, or c):
+
+```{r}
+str_view(x, "[^re]")
+str_view_all(x, "[^re]")
+```
+
+Outside square brackets, the caret checks whether one or a set of characters are located at the beginning of a string:
+```{r}
+str_view_all(x, "^[re]")
+```
+
+**The square brackets can be used to show any consecutive letters or numbers.** For example, use `[0-9]` to check whether a string contains any two consecutive decimal digit characters:
+
+```{r}
+y <- "'ciao_Good_123_12hi"
+```
+
+```{r}
+str_view_all(y, "[0-9][0-9]")
+str_view_all(y, "[0-9][0-9][0-9]")
+```
+
+To check whether our string contains four alphabetic characters between the letter a and z, use `[a-z]` for lowercase and/or `[A-Z]` for uppercase characters:
+```{r}
+str_view_all(y, "[a-zA-Z][a-z][a-z][a-z]")
+```
+
+**PRACTICE 2.** This sentence contains a set of ugly characters. Identify them first using the `|` operator, then using the `[]`:
+```{r}
+j <- "This&is#MACS%30500"
+```
+
+```{r practice2-solution}
+# your code for `|` here
+# your code for [] here
+```
+
+## Most common meta-characters: `\d`, `\D`, `\w`, `\W`, `\s`, `\S`
+
+Other common meta-characters are `\d`, `\D`, `\w`, `\W`, `\s`, `\S`. Let's check how they work using the sentence below as example: 
+```{r}
+z <- "There are eight HW assignments in this course: HW1, HW2, HW3, HW4, etc..."
+```
+
+**`\d` matches any decimal digit character, same as [0-9]**
+```{r}
+str_view_all(z, "HW\\d")
+```
+
+Notice the `\\` double-backslashes: to include a literal backslash, you will need to double it. If you want to avoid them, pass the regular expression as a "raw string":
+```{r}
+str_view_all(z, r"(HW\d)")
+```
+
+**`\D` matches any character that is NOT decimal digit, same as [^0-9]**
+```{r}
+str_view_all(z, "HW\\D")
+```
+
+**`\w` matches any alphanumeric character, same as [a-zA-Z0-9]**
+```{r}
+str_view_all(z, "\\w")
+```
+
+**`\W` matches any character that is NOT alphanumeric, same as [^a-zA-Z0-9]**
+```{r}
+str_view_all(z, "\\W")
+```
+
+**`\s` matches any white space character**
+```{r}
+str_view_all(z, "\\s")
+```
+
+**`\S` matches any character that is NOT white space**
+```{r}
+str_view_all(z, "\\S")
+```
+
+
+**PRACTICE 3.** Apply these meta-characters to extract all phone numbers from the following string:
+
+```{r}
+s <- "My number is 444-3340, Carl number is 555-3755, Richard number is 666-6681"
+```
+
+```{r pratice3-solution}
+# your code here
+```
+
+
+## Quantifiers: `*`, `+`, `?`, `{}` 
+
+We can simply the above code using quantifiers. These are **meta-characters that allow to specify quantifiable conditions, such that a certain character must occur 0 or more times, 1 or more times, and so on**
+
+The most common quantifiers are:
+
+* `*` 	    matches 0 or more single character
+* `+` 	    matches 1 or more
+* `?` 	    matches 0 or 1
+* `{2}`     matches a specified number of repetitions, here exactly 2
+* `{2,5}`	  between 2 and 5 repetitions
+* `{2,}`	  2 or more repetitions
+* `{,5}`	  up to 5 repetitions
+
+For example, we can use quantifiers to achieve the same results we did in practice 3 (extract all phone numbers from string `j`):
+```{r}
+str_view_all(j, "\\d{3}-\\d{4}")
+str_view_all(j, "[0-9]{3}-[0-9]{4}")
+str_view_all(j, "\\d+-\\d+")
+```
+
+Notice that quantifiers, like * or + or ?, apply to the character immediately to the left and not the full set of characters. 
+
+**PRACTICE 4.** Match all three emails in the following string:
+```{r}
+email <- "smith90@uchicago.edu nardin@uchicago.edu happy2@uchicago.edu"
+```
+
+```{r pratice4-solution}
+# your code here
+```
+
+**Quantifiers can be "greedy" or "lazy" ("non-greedy")**: by default, they are greedy.
+
+Examples of Greedy quantifiers are `?`,`*`, `+`, and `{}`:
+
+* They match as many characters as possible, and return the longest string at the first match that matches the pattern (e.g., the regex goes to the end of string, then backtracks until it matches the pattern)
+* Example: the regex `a+` will match as many "a" as possible in the string "aaaa" even even though the substrings "a", "aa", "aaa" all match the regex "a+"
+
+Examples of Lazy or Non-Greedy quantifiers are `??`, `*?`, `+?`, and `{}?`:
+
+* They match as few characters as possible, and stop at the first recurrence of a character (e.g., the regex moves forward through the string one character at a time, and stops at the first match)
+* Example: the regex `a+?` will match as few "a" as possible in the string "aaaa". Thus, it matches the first character "a" and is done with it
+
+
+## The `stringr` package
+
+`str_view()` and `str_view_all()` are useful to view a match but when you use regular expressions for your work, you will likely need to other `stringr` functions. The most common are:
+
+* `str_detect()`: detect matches in a string (return TRUE or FALSE)
+* `str_count()`: count the number of matches
+* `str_extract()` and `str_extract_all()`: extract matches
+* `str_replace()` and `str_replace_all()`: replace matches
+* `str_split()`: split a string based on a match
+
+These functions work the same way as the two functions we saw (pass the string and the regular expression), but they allow to do more than just viewing matches.
+
+**To learn how to use each of these functions see:**
+
+* [stringr cheat sheet](https://evoldyn.gitlab.io/evomics-2018/ref-sheets/R_strings.pdf) for a complete overview of all `stringr` functions
+* [Chapter 14 "Strings" of R for Data Science](https://r4ds.had.co.nz/strings.html#strings), especially section 14.4 "Tools" for examples of each of these functions
+* See also the slides and the class websites (suggested reading) for more resources
