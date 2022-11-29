@@ -1,0 +1,62 @@
+---
+title: "Regular expressions in R - solutions to in-class practice"
+date: "`r lubridate::today()`"
+output: html_document
+always_allow_html: true
+---
+
+```{r}
+library(stringr)
+suppressPackageStartupMessages(library(tidyverse))
+```
+
+
+**PRACTICE 1.** Use dots and `$` to match the last four characters of all sentences in `x`: 
+
+```{r}
+x <- c("This is a sentence to practice regular expressions", 
+       "Find the word regex in this sentence",
+       "A last sentence similar to the first sentence")
+```
+
+```{r practice1-solution}
+str_view(x, "....$")
+```
+
+
+**PRACTICE 2.** This sentence contains a set of ugly characters. Identify them first using the `|` operator, then using the `[]`:
+
+```{r}
+j <- "This&is#MACS%30500"
+```
+
+```{r practice2-solution}
+str_view_all(j, "&|#|%")
+str_view_all(j, "[&#%]")
+```
+
+
+**PRACTICE 3.** Apply these meta-characters to extract all phone numbers from the following string:
+
+```{r}
+s <- "My number is 444-3340, Carl number is 555-3755, Richard number is 666-6681"
+```
+
+```{r pratice3-solution}
+str_view_all(s, "[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]")
+str_view_all(s, "\\d\\d\\d-\\d\\d\\d\\d")
+str_view_all(s, r"(\d\d\d-\d\d\d\d)")
+```
+
+
+**PRACTICE 4.** Match all three emails in the following string:
+
+```{r}
+email <- "smith90@uchicago.edu nardin@uchicago.edu happy2@uchicago.edu"
+```
+
+```{r pratice4-solution}
+str_view_all(email, "[a-z]+[0-9]*@uchicago\\.edu")
+```
+
+Unpack the solution for practice 4: `[a-z]+` matches one or more characters, `[0-9]*` matches zero or more numbers, `@uchicago\.edu` is a literal match with `\` to match the dot literally
