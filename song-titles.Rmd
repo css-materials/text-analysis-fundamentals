@@ -1,0 +1,54 @@
+---
+title: "US state mentioned in popular songs"
+output: github_document
+---
+
+Question: How often is each U.S. state mentioned in a popular song? 
+Data: Billboard Year-End Hot 100 (1958-present) and the Census Bureau ACS
+
+Load libraries 
+```{r}
+library(tidyverse)
+library(tidytext)
+library(here)
+```
+
+
+Simply run the following code to import the two dataframes (song lyrics and population data). Before completing the next task, spend some time looking at these two data frames.
+If you are not working on Workbench, change the path to import the files!
+
+```{r}
+song_lyrics <- here("data", "billboard_lyrics_1964-2015.csv") %>%
+  read_csv()
+glimpse(song_lyrics)
+```
+
+```{r}
+pop_df <- here("data", "pop2016.csv") %>%
+  read_csv()
+glimpse(pop_df)
+```
+
+
+Complete the following tasks (add as many R code chunks as you like)
+
+Using the `song_lyrics` data as input ,create a novel data frame with one row for each token in each song (remember the `unnest_tokens` function!) To search for matching state names, the df you create should include both unigrams and bigrams (e.g., your tokenizer should create both)
+
+```{r}
+
+```
+
+
+Find all the state names occurring in the song lyrics. To complete this task, first create a data frame that meets this criteria using `inner_join()`. Then, save a new data frame that only includes one observation for each matching song (that is, if the song is "New York, New York", there should only be one row in the resulting table for that song -- you can use the `distinct()` function to accomplish this task)
+
+```{r}
+
+```
+
+
+Calculate the frequency for each state's mention in a song and create a new column for the frequency adjusted by the state's population
+
+```{r}
+
+```
+

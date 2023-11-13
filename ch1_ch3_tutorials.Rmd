@@ -1,0 +1,183 @@
+---
+title: "Text analysis with R tidyverse: Jane Austen example"
+output: github_document
+---
+
+
+Tutorials taken from 
+* [Chapter 1.3 Tidying the works of Jane Austen](https://www.tidytextmining.com/tidytext.html#tidyausten)
+* [Chapter 3.1 Term frequency in Jane Austen’s novels](https://www.tidytextmining.com/tfidf#term-frequency-in-jane-austens-novels)
+* [Chapter 4 Relationships between words: n-grams and correlations](https://www.tidytextmining.com/ngrams)
+
+
+Import libraries 
+```{r}
+library(tidyverse)
+library(tidytext)
+library(janeaustenr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(forcats)
+```
+
+The `janeaustenr` package provides Jane Austen's texts in a one-row-per-line format, where a line is analogous to a literal printed line in a physical book. 
+
+Explore data (see See https://github.com/juliasilge/janeaustenr)
+```{r}
+austen_books()
+
+is.vector(emma)
+emma[1:20]
+
+```
+
+Get data and perform basic manipulation (e.g., use `mutate()` to annotate a linenumber and chapter)
+```{r}
+original_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, 
+                                     regex("^chapter [\\divxlc]",
+                                           ignore_case = TRUE)))) %>%
+  ungroup()
+```
+
+What does this regular expression mean? Break it down: `^chapter`, `\\`, `[divxlc]`
+It matches thw word chapter lowercase, and any of the literal roman characters that follow it 
+
+Pre-process data by reshaping this df into the one-token-per-row format using `unnest_tokens`
+```{r}
+tidy_books <- original_books %>%
+  unnest_tokens(word, text)
+
+head(tidy_books)
+tail(tidy_books)
+```
+
+Pre-process data by removing stop words
+```{r}
+data(stop_words)
+```
+
+Notice `anti_join()` return all rows from x without a match in y 
+See docs for more: https://dplyr.tidyverse.org/reference/filter-joins.html especially if oyu need to specify column names on the two dataframes using by
+```{r}
+tidy_books_no_stop <- tidy_books %>%
+  anti_join(stop_words)
+```
+
+Remove stop word using simple `filter()`
+```{r}
+tidy_books  %>% 
+ filter(!word %in% stop_words$word)
+```
+
+
+Data analysis: use count() to find most common words in all books
+```{r}
+tidy_books %>%
+  count(word, sort = TRUE)
+```
+
+
+Data analysis: filter, reorder, and visualize common words
+```{r}
+tidy_books %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 600) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word)) +
+  geom_col() +
+  labs(y = NULL)
+
+```
+
+
+Data analysis (CHAPTER 3): TF-IDF 
+
+We start with TF or Term Frequency: 
+TF is simply the count of how frequent a word occurs in a document. Here our documents are books. If we want to know the TF of a given word of interest by book, we need: 
+the count of all words, the count of all words by book, we take the word of interest and divide by the total words in that wook (word/words)
+
+```{r}
+# count all words
+book_words <- austen_books() %>%
+  unnest_tokens(word, text) %>%
+  count(book, word, sort = TRUE)
+book_words
+
+```
+
+```{r}
+# summarize total words grouped by each book
+total_words <- book_words %>% 
+  group_by(book) %>% 
+  summarize(total = sum(n))
+total_words
+```
+
+```{r}
+# join these data by book
+book_words <- left_join(book_words, total_words)
+book_words
+```
+
+This book_words data frame has one word for each word-book combination
+* n: number of times that word is used in that book
+* total: total words in that book
+So we can plot our distribution of n/total
+
+```{r}
+# look at the n/total for each book
+ggplot(book_words, aes(n/total, fill = book)) +
+  geom_histogram(show.legend = FALSE) +
+  xlim(NA, 0.0009) +
+  facet_wrap(~book, ncol = 2, scales = "free_y")
+```
+
+Zipf's law: we notice many words occur rarely, and few words occur very frequently. In other terms the frequency that a word appears is inversely proportional to its rank: https://simple.wikipedia.org/wiki/Zipf%27s_law
+
+See book for code and examples. 
+
+Now we calculate TF-IDF
+* TF is frequency count of words per document 
+* IDF measures how important a word is to a document by:
+  * decreasing the weight for commonly used words and 
+  * increasing the weight for words that are rarely used in corpus of documents
+For a theoretical explanation of tf-idf: https://web.stanford.edu/~jurafsky/slp3/6.pdf
+
+
+To calculate TF-IDF in tidy R, use the `bind_tf_idf()` function, which takes a tidy text df as input with three columns: the single token (word here), the single document (book here), and the count that is hoe many time each single document contains each single token (n here)
+
+```{r}
+book_tf_idf <- book_words %>%
+  bind_tf_idf(word, book, n)
+book_tf_idf
+```
+
+Notice that idf and thus tf-idf are zero for the most common words. Now look at terms with high tf-idf by rearranging the previous results 
+
+```{r}
+book_tf_idf %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+```
+
+Notice those are proper nouns important to each of these novels: none of them appear in all novels, and each is characteristic of a particular one
+
+Visualize the results: 
+```{r}
+book_tf_idf %>%
+  group_by(book) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = book)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~book, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+```
+
+
+Data analysis (CHAPTER 4): relationship between words (n-grams and correlations)
+Follow the chapter and copy/paste the code to reproduce it!
